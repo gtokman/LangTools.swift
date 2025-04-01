@@ -7,14 +7,14 @@ public extension OpenAI {
         public typealias ToolResult = Content.ToolResultContent
 
         public let role: Role
-        public let content: Content
+        public let content: Content?
         public let name: String?
         public let tool_calls: [ToolCall]?
         public let audio: AudioResponse?
         public let refusal: String?
 
         var toolResult: ToolResult? {
-            if case .toolResult(let tool) = content.array?.first { return tool }; return nil
+            if case .toolResult(let tool) = content?.array?.first { return tool }; return nil
         }
 
         public var tool_call_id: String? {
@@ -82,7 +82,7 @@ public extension OpenAI {
             self.refusal = nil
         }
 
-        public init(role: Role, content: Content, name: String? = nil, tool_calls: [ToolCall]? = nil, audio: AudioResponse? = nil, refusal: String? = nil) throws {
+        public init(role: Role, content: Content?, name: String? = nil, tool_calls: [ToolCall]? = nil, audio: AudioResponse? = nil, refusal: String? = nil) throws {
             switch role {
             case .user: if case .null = content { throw MessageError.missingContent }
             case .tool: guard case .array(let arr) = content, case .toolResult(_) = arr[0] else { throw MessageError.missingContent }
@@ -159,10 +159,10 @@ public extension OpenAI {
                 self = .string(string)
             }
 
-            public init(_ content: any LangToolsContent) {
-                if let array = content.array {
+            public init(_ content: (any LangToolsContent)?) {
+                if let array = content?.array {
                     self = .array(array.compactMap { try? ContentType($0) } )
-                } else if let string = content.string {
+                } else if let string = content?.string {
                     self = .string(string)
                 } else {
                     self = .null

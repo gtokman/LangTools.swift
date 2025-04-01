@@ -4,7 +4,7 @@ import OpenAI
 
 extension Ollama {
     public static func chatRequest(model: Model, messages: [any LangToolsMessage], tools: [any LangToolsTool]?, toolEventHandler: @escaping (LangToolsToolEvent) -> Void) throws -> any LangToolsChatRequest {
-        return Ollama.ChatRequest(model: model, messages: messages.map { Message($0) }, tools: tools?.map { OpenAI.Tool($0) }, toolEventHandler: toolEventHandler)
+        return Ollama.ChatRequest(model: model, messages: messages.compactMap { Message($0) }, tools: tools?.map { OpenAI.Tool($0) }, toolEventHandler: toolEventHandler)
     }
 
     public struct ChatRequest: Codable, LangToolsChatRequest, LangToolsStreamableRequest, LangToolsToolCallingRequest {
@@ -28,7 +28,7 @@ extension Ollama {
 
         public init(model: Ollama.Model, messages: [any LangToolsMessage]) {
             self.model = model
-            self.messages = messages.map { Message($0) }
+            self.messages = messages.compactMap { Message($0) }
 
             format = nil
             options = nil
@@ -99,7 +99,7 @@ extension Ollama {
                 created_at: next.created_at,
                 message: Message(
                     role: next.message?.role ?? message?.role ?? .assistant,
-                    content: (message?.content.text ?? "") + (next.message?.content.text ?? ""),
+                    content: (message?.content?.text ?? "") + (next.message?.content?.text ?? ""),
                     images: next.message?.images ?? message?.images,
                     tool_calls: next.message?.tool_calls ?? message?.tool_calls
                 ),
@@ -122,7 +122,7 @@ extension Ollama {
 
         public let role: Role
         // Wrapping in LangToolsTextContent for api consistency.
-        public let content: LangToolsTextContent
+        public let content: LangToolsTextContent?
         public let images: [String]?
         public let tool_calls: [ChatToolCall]?
 
@@ -166,7 +166,7 @@ extension Ollama {
         public func encode(to encoder: any Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(role, forKey: .role)
-            try container.encode(content.text, forKey: .content)
+            try container.encode(content?.text ?? "", forKey: .content)
             try container.encodeIfPresent(images, forKey: .images)
             try container.encodeIfPresent(tool_calls, forKey: .tool_calls)
         }

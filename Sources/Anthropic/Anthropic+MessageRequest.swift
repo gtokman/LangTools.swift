@@ -19,11 +19,13 @@ public extension Anthropic {
     }
 
     static func toAnthropicMessages(_ messages: [any LangToolsMessage]) -> [Anthropic.Message] {
-        return messages.filter { !$0.role.isSystem && !$0.role.isTool }.map { Anthropic.Message($0) }
+        return messages.filter { !$0.role.isSystem && !$0.role.isTool }.compactMap { Anthropic.Message($0) }
     }
 
     static func toAnthropicSystemMessage(_ messages: [any LangToolsMessage]) -> String? {
-        return messages.filter { $0.role.isSystem }.reduce("") { (!$0.isEmpty ? $0 + "\n---\n" : "") + $1.content.text }
+        return messages.filter { $0.role.isSystem }.reduce("") {
+            (!$0.isEmpty ? $0 + "\n---\n" : "") + ($1.content?.text ?? "")
+        }
     }
 }
 

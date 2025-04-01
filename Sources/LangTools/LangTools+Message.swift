@@ -12,14 +12,15 @@ public protocol LangToolsMessage: Codable {
     associatedtype Role: LangToolsRole
     associatedtype Content: LangToolsContent
     var role: Role { get }
-    var content: Content { get }
+    var content: Content? { get }
 
-    init(_ message: any LangToolsMessage)
+    init?(_ message: (any LangToolsMessage)?)
     init(role: Role, content: Content)
 }
 
 extension LangToolsMessage {
-    public init(_ message: any LangToolsMessage) {
+    public init?(_ message: (any LangToolsMessage)?) {
+        guard let message else { return nil }
         self.init(role: Role(message.role), content: Content(message.content))
     }
 }
@@ -52,8 +53,9 @@ public enum LangToolsRoleImpl: LangToolsRole {
 }
 
 public struct LangToolsMessageImpl<Content: LangToolsContent>: LangToolsMessage {
+    
     public var role: LangToolsRoleImpl
-    public var content: Content
+    public var content: Content?
 
     public init(role: LangToolsRoleImpl, string: String) {
         self.role = role
@@ -94,7 +96,7 @@ public protocol LangToolsContent: Codable {
     var string: String? { get }
     var array: [ContentType]? { get }
 
-    init(_ content: any LangToolsContent)
+    init(_ content: (any LangToolsContent)?)
     init(string: String)
 }
 
@@ -163,8 +165,8 @@ public struct LangToolsTextContent: LangToolsTextContentType, LangToolsContent, 
        text = stringLiteral
     }
 
-    public init(_ content: any LangToolsContent) {
-        self.text = content.text
+    public init(_ content: (any LangToolsContent)?) {
+        self.text = content?.text ?? ""
     }
 
     public var text: String

@@ -64,7 +64,7 @@ public enum AgentEvent: Equatable {
 
 extension Agent {
     public func execute(context: AgentContext) async throws -> String {
-        context.eventHandler(.started(agent: name, parent: context.parent?.name, task: context.messages.last?.content.text ?? "Unknown task"))
+        context.eventHandler(.started(agent: name, parent: context.parent?.name, task: context.messages.last?.content?.text ?? "Unknown task"))
         let tools = delegateAgents.isEmpty ? tools : (tools ?? []) + [Tool(
             name: "agent_transfer",
             description: "Transfer the task to another agent. Be specific and explicit in your directions, direct them only to do what you need them to do.",
@@ -116,7 +116,7 @@ extension Agent {
         do {
             let request = try LangTool.chatRequest(model: model, messages: [systemMessage] + context.messages, tools: tools, toolEventHandler: toolEventHandler)
             let response = try await langTool.perform(request: request) as any LangToolsChatResponse
-            let result = response.message?.content.text ?? ""
+            let result = response.message?.content?.text ?? ""
             if result.isEmpty {
                 context.eventHandler(.error(agent: name, message: "Empty result received"))
                 throw AgentError("Failed to return text content")

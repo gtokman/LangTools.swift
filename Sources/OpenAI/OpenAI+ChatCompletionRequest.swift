@@ -15,7 +15,7 @@ public extension OpenAI {
     }
 
     static func chatRequest(model: Model, messages: [any LangToolsMessage], tools: [any LangToolsTool]?, toolEventHandler: @escaping (LangToolsToolEvent) -> Void) throws -> any LangToolsChatRequest {
-        return  ChatCompletionRequest(model: model, messages: messages.map { Message($0) }, tools: tools?.map { Tool($0) }, toolEventHandler: toolEventHandler)
+        return  ChatCompletionRequest(model: model, messages: messages.compactMap { Message($0) }, tools: tools?.map { Tool($0) }, toolEventHandler: toolEventHandler)
     }
 }
 
@@ -62,12 +62,12 @@ extension OpenAI {
         public var toolEventHandler: ((LangToolsToolEvent) -> Void)?
 
         public init(model: OpenAIModel, messages: [any LangToolsMessage]) {
-            self.init(model: model, messages: messages.map { Message($0) })
+            self.init(model: model, messages: messages.compactMap { Message($0) })
         }
 
         public init(model: Model, messages: [Message], temperature: Double? = nil, top_p: Double? = nil, n: Int? = nil, stream: Bool? = nil, stream_options: StreamOptions? = nil, stop: Stop? = nil, max_tokens: Int? = nil, max_completion_tokens: Int? = nil, presence_penalty: Double? = nil, frequency_penalty: Double? = nil, logit_bias: [String: Double]? = nil, logprobs: Bool? = nil, top_logprobs: Int? = nil, user: String? = nil, response_type: ResponseType? = nil, seed: Int? = nil, tools: [Tool]? = nil, tool_choice: ToolChoice? = nil, parallel_tool_calls: Bool? = nil, service_tier: Response.ServiceTier? = nil, store: Bool? = nil, prediction: PredictionContent? = nil, modalities: [Modality]? = nil, audio: AudioConfig? = nil, reasoning_effort: ReasoningEffort? = nil, metadata: [String: String]? = nil, choose: @escaping ([Response.Choice]) -> Int = {_ in 0},  toolEventHandler: @escaping (LangToolsToolEvent) -> Void = {_ in}) {
             self.model = model
-            self.messages = if Model.reasoning.contains(model) { messages.map { Message(role: $0.role == .system ? .developer : $0.role, content: $0.content) } } else { messages }
+            self.messages = if Model.reasoning.contains(model) { messages.compactMap { try? Message(role: $0.role == .system ? .developer : $0.role, content: $0.content) } } else { messages }
             self.temperature = temperature
             self.top_p = top_p
             self.n = n
@@ -343,7 +343,7 @@ extension OpenAI {
 
             func combining(_ message: Message?, with delta: Message.Delta?) -> Message? {
                 guard let delta = delta else { return message }
-                return try! Message(role: message?.role ?? delta.role ?? .assistant, content: .string(message?.content.string ?? "" + (delta.content ?? "")), name: message?.name, tool_calls: combining(message?.tool_calls, with: delta.tool_calls))
+                return try! Message(role: message?.role ?? delta.role ?? .assistant, content: .string(message?.content?.string ?? "" + (delta.content ?? "")), name: message?.name, tool_calls: combining(message?.tool_calls, with: delta.tool_calls))
             }
 
             func combining(_ delta: Message.Delta?, with next: Message.Delta?) -> Message.Delta? {

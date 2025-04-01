@@ -5,7 +5,7 @@ extension Anthropic {
     public struct Message: Codable, LangToolsMessage, LangToolsToolMessage {
 
         public let role: Role
-        public let content: Content
+        public let content: Content?
 
         public static func messages(for tool_results: [Content.ContentType.ToolResult]) -> [Anthropic.Message] {
             return [.init(role: .user, content: .array(tool_results.map{.toolResult($0)}))]
@@ -17,7 +17,7 @@ extension Anthropic {
         }
 
         public var tool_selection: [Content.ContentType.ToolUse]? {
-            return content.tool_selection
+            return content?.tool_selection
         }
 
         public init(role: Role, content: String) {
@@ -61,6 +61,7 @@ extension Anthropic {
     }
 
     public enum Content: Codable, LangToolsContent {
+  
         case string(String)
         case array([ContentType])
 
@@ -68,10 +69,10 @@ extension Anthropic {
             self = .string(string)
         }
 
-        public init(_ content: any LangToolsContent) {
-            if let string = content.string {
+        public init(_ content: (any LangToolsContent)?) {
+            if let string = content?.string {
                 self = .string(string)
-            } else if let array = content.array {
+            } else if let array = content?.array {
                 self = .array(array.compactMap { try? ContentType($0) })
             } else {
                 fatalError("content not handled! \(content)")
