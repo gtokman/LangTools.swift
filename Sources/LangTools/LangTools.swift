@@ -121,7 +121,28 @@ extension LangTools {
     }
 
     public static func decodeStream<T: Decodable>(_ buffer: String) throws -> T? {
-        return if buffer.hasPrefix("data:") && !buffer.contains("[DONE]"), let data = buffer.dropFirst(5).data(using: .utf8) { try Self.decodeResponse(data: data) } else { nil }
+        if buffer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return nil
+        }
+
+        let trimmed = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmed == "data: [DONE]" || trimmed == "[DONE]" {
+            return nil
+        }
+
+        let jsonString: String
+        if trimmed.hasPrefix("data:") {
+            jsonString = String(trimmed.dropFirst("data:".count)).trimmingCharacters(in: .whitespaces)
+        } else {
+            jsonString = trimmed
+        }
+
+        guard let data = jsonString.data(using: .utf8) else {
+            throw LangToolError.invalidData
+        }
+
+        return try Self.decodeResponse(data: data)
     }
 }
 

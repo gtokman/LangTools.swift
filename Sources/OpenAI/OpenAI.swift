@@ -14,18 +14,22 @@ final public class OpenAI: LangTools {
     public typealias ErrorResponse = OpenAIErrorResponse
 
     private var configuration: OpenAIConfiguration
-    private var apiKey: String { configuration.apiKey }
+    private var apiKey: String? { configuration.apiKey }
     public var session: URLSession { configuration.session }
 
     public struct OpenAIConfiguration {
         public var baseURL: URL
-        public let apiKey: String
+        public let apiKey: String?
         public var session: URLSession
+        public let customHeaders: [String: String]?
+        public let path: String
 
-        public init(baseURL: URL = URL(string: "https://api.openai.com/v1/")!, apiKey: String, session: URLSession = URLSession(configuration: .default, delegate: nil, delegateQueue: nil)) {
+        public init(baseURL: URL = URL(string: "https://api.openai.com/v1/")!, apiKey: String? = nil, session: URLSession = .shared, customerHeaders: [String: String] = [:], path: String = "v1/chat/completions") {
             self.baseURL = baseURL
             self.apiKey = apiKey
             self.session = session
+            self.customHeaders = customerHeaders
+            self.path = path
         }
     }
 
@@ -40,8 +44,8 @@ final public class OpenAI: LangTools {
         ]
     }
 
-    public init(baseURL: URL = URL(string: "https://api.openai.com/v1/")!, apiKey: String, session: URLSession = URLSession(configuration: .default, delegate: nil, delegateQueue: nil)) {
-        configuration = OpenAIConfiguration(baseURL: baseURL, apiKey: apiKey)
+    public init(baseURL: URL = URL(string: "https://api.openai.com/v1/")!, apiKey: String? = nil, session: URLSession = .shared, customHeaders: [String: String] = [:], path: String = "v1/chat/completions") {
+        configuration = OpenAIConfiguration(baseURL: baseURL, apiKey: apiKey, customerHeaders: customHeaders, path: path)
     }
 
     public init(configuration: OpenAIConfiguration) {
@@ -49,7 +53,7 @@ final public class OpenAI: LangTools {
     }
 
     public func prepare<Request: LangToolsRequest>(request: Request) throws -> URLRequest {
-        var url = configuration.baseURL.appending(path: request.endpoint)
+        var url = configuration.baseURL.appending(path: configuration.path)
         if Request.httpMethod == .get {
             if let id = (request as? any Identifiable)?.id as? String {
                 url = url.appending(path: id)
@@ -64,7 +68,15 @@ final public class OpenAI: LangTools {
 
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = Request.httpMethod.rawValue
-        urlRequest.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        if let apiKey {
+            urlRequest.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
+        
+        if let customHeaders = configuration.customHeaders {
+            for (header, value) in customHeaders {
+                urlRequest.addValue(value, forHTTPHeaderField: header)
+            }
+        }
 
         if Request.httpMethod == .get { return urlRequest }
 
